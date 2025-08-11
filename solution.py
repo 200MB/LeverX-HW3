@@ -185,11 +185,9 @@ class MySqlProcessor(DatabaseProcessor):
         create_schema = f"""CREATE DATABASE IF NOT EXISTS {self.database_name}"""
         self.database.execute(create_schema)
 
-        # Connect to a database
         connect_to_database = f"""USE {self.database_name}"""
         self.database.execute(connect_to_database)
 
-        # Create rooms table
         create_room_table = """
             CREATE TABLE IF NOT EXISTS rooms
             (
@@ -199,7 +197,6 @@ class MySqlProcessor(DatabaseProcessor):
         """
         self.database.execute(create_room_table)
 
-        # Create students table
         create_student_table = """
             CREATE TABLE IF NOT EXISTS students
             (
@@ -213,7 +210,6 @@ class MySqlProcessor(DatabaseProcessor):
         """
         self.database.execute(create_student_table)
 
-        # Create indexes for optimization
         self.database.execute("CREATE INDEX idx_students_room_id ON students (room_id)")
         print("Index 'idx_students_room_id' created.")
         self.database.execute("CREATE INDEX idx_students_birthday ON students (birthday)")
@@ -223,14 +219,12 @@ class MySqlProcessor(DatabaseProcessor):
 
     def insert_data(self, students: list[Student], rooms: list[Room]):
 
-        # Insert rooms data
         insert_room_data = """INSERT INTO rooms (id, name)
                               VALUES (%s, %s)"""
         rooms_data = [(room.id, room.name) for room in rooms]
         self.database.executemany(insert_room_data, rooms_data)
         pass
 
-        # Insert student data
         insert_student_data = """INSERT INTO students (id, name, room_id, birthday, sex)
                                  VALUES (%s, %s, %s, %s, %s)"""
         students_data = [(student.id, student.name, student.room_id,
