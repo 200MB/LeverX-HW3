@@ -1,5 +1,4 @@
 from datetime import datetime
-
 import mysql.connector
 from dataclasses import dataclass, field
 import xml.etree.ElementTree as ET
@@ -237,8 +236,7 @@ class MySqlProcessor(DatabaseProcessor):
         self.database.execute("DELETE FROM rooms")
 
     def retrieve_filtered_data(self):
-        # List of rooms and the number of students in each.
-        first_query = """SELECT r.name      AS room_name,
+        query_student_counts = """SELECT r.name      AS room_name,
                                 COUNT(s.id) AS student_count
                          FROM rooms AS r
                                   JOIN students AS s
@@ -246,48 +244,45 @@ class MySqlProcessor(DatabaseProcessor):
                          GROUP BY r.name
                          ORDER BY student_count DESC; \
                       """
-        self.database.execute(first_query)
+        self.database.execute(query_student_counts)
         results = self.database.fetchall()
         for room_name, student_count in results:
             print(f"  - Room '{room_name}': {student_count} students")
         print("-" * 50)
 
-        # Top 5 rooms with the smallest average student age
-        second_query = """SELECT r.name                                          AS room_name,
+        query_smallest_avg_age = """SELECT r.name                                          AS room_name,
                                  AVG(TIMESTAMPDIFF(YEAR, s.birthday, CURDATE())) AS average_age
                           FROM rooms AS r
                                    JOIN students AS s
                                         ON r.id = s.room_id
                           GROUP BY r.name
                           ORDER BY average_age ASC LIMIT 5;"""
-        self.database.execute(second_query)
+        self.database.execute(query_smallest_avg_age)
         results = self.database.fetchall()
         for room_name, average_age in results:
             print(f"  - Room '{room_name}': Average age {average_age:.2f} years")
         print("-" * 50)
 
-        # Top 5 rooms with the largest age difference among students
-        third_query = """SELECT r.name                                                AS room_name,
+        query_largest_age_diff = """SELECT r.name                                                AS room_name,
                                 TIMESTAMPDIFF(YEAR, MIN(s.birthday), MAX(s.birthday)) AS age_difference
                          FROM rooms AS r
                                   JOIN students AS s
                                        ON r.id = s.room_id
                          GROUP BY r.name
                          ORDER BY age_difference DESC LIMIT 5;"""
-        self.database.execute(third_query)
+        self.database.execute(query_largest_age_diff)
         results = self.database.fetchall()
         for room_name, age_difference in results:
             print(f"  - Room '{room_name}': Age difference of {age_difference} years")
         print("-" * 50)
 
-        # List of rooms where students of different sexes live together
-        fourth_query = """SELECT r.name AS room_name
+        query_mixed_sex_rooms = """SELECT r.name AS room_name
                           FROM rooms AS r
                                    JOIN students AS s
                                         ON r.id = s.room_id
                           GROUP BY r.name
                           HAVING COUNT(DISTINCT s.sex) > 1;"""
-        self.database.execute(fourth_query)
+        self.database.execute(query_mixed_sex_rooms)
         results = self.database.fetchall()
         for room_name in results:
             print(f"  - Room '{room_name[0]}'")
