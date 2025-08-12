@@ -44,15 +44,15 @@ class DatabaseConnection(ABC):
 
 
 class MySqlConnection(DatabaseConnection):
-    def fetchall(self):
-        return self.cursor.fetchall()
-
     def __init__(self, host: str, user: str, password: str):
         self.host = host
         self.user = user
         self.password = password
         self.conn = None
         self.cursor = None
+
+    def fetchall(self):
+        return self.cursor.fetchall()
 
     def connect(self):
         self.conn = mysql.connector.connect(
