@@ -158,7 +158,7 @@ class XmlDataLoader(DataLoader):
 
 class DatabaseProcessor(ABC):
     @abstractmethod
-    def create_schema(self):
+    def initialize_db(self):
         pass
 
     @abstractmethod
@@ -175,46 +175,55 @@ class MySqlProcessor(DatabaseProcessor):
     Processor runs every instruction at once with database connection and a loader.
     """
 
-    def __init__(self, database: DatabaseConnection, loader: DataLoader):
-        self.database_name = "myDB"
+    def __init__(self, database: DatabaseConnection, loader: DataLoader, db_name: str):
+        self.database_name = db_name if db_name is not None else "myDb"
         self.loader = loader
         self.database = database
 
-    def create_schema(self):
-        create_schema = f"""CREATE DATABASE IF NOT EXISTS {self.database_name}"""
-        self.database.execute(create_schema)
+    def _create_database(self):
+        create_db = f"""CREATE DATABASE IF NOT EXISTS {self.database_name}"""
+        self.database.execute(create_db)
 
+    def _use_database(self):
         connect_to_database = f"""USE {self.database_name}"""
         self.database.execute(connect_to_database)
 
+    def _create_tables(self):
         create_room_table = """
-            CREATE TABLE IF NOT EXISTS rooms
-            (
-                id INTEGER NOT NULL PRIMARY KEY,
-                name VARCHAR(255) NOT NULL
-            );
-        """
+                    CREATE TABLE IF NOT EXISTS rooms
+                    (
+                        id INTEGER NOT NULL PRIMARY KEY,
+                        name VARCHAR(255) NOT NULL
+                    );
+                """
         self.database.execute(create_room_table)
 
         create_student_table = """
-            CREATE TABLE IF NOT EXISTS students
-            (
-                id INTEGER NOT NULL PRIMARY KEY,
-                name VARCHAR(255) NOT NULL,
-                room_id INTEGER NOT NULL,
-                birthday DATETIME,
-                sex CHAR(1),
-                FOREIGN KEY (room_id) REFERENCES rooms (id)
-            );
-        """
+                    CREATE TABLE IF NOT EXISTS students
+                    (
+                        id INTEGER NOT NULL PRIMARY KEY,
+                        name VARCHAR(255) NOT NULL,
+                        room_id INTEGER NOT NULL,
+                        birthday DATETIME,
+                        sex CHAR(1),
+                        FOREIGN KEY (room_id) REFERENCES rooms (id)
+                    );
+                """
         self.database.execute(create_student_table)
 
+    def _create_indexes(self):
         self.database.execute("CREATE INDEX idx_students_room_id ON students (room_id)")
         print("Index 'idx_students_room_id' created.")
         self.database.execute("CREATE INDEX idx_students_birthday ON students (birthday)")
         print("Index 'idx_students_birthday' created.")
         self.database.execute("CREATE INDEX idx_students_room_sex ON students (room_id, sex)")
         print("Index 'idx_students_room_sex' created.")
+
+    def initialize_db(self):
+        self._create_database()
+        self._use_database()
+        self._create_tables()
+        self._create_indexes()
 
     def insert_data(self, students: list[Student], rooms: list[Room]):
 
@@ -292,7 +301,7 @@ class MySqlProcessor(DatabaseProcessor):
         """Executes the main application logic."""
         try:
             self.database.connect()
-            self.create_schema()
+            self.initialize_db()
             self.clear_tables()
 
             students, rooms = self.loader.load("students.json", "rooms.json")
@@ -313,7 +322,7 @@ class MySqlProcessor(DatabaseProcessor):
 
 def main():
     """
-    Instantiate a processor and run the instructions. 
+    Instantiate a processor and run the instructions.
     """
 
     host = ""
@@ -321,7 +330,7 @@ def main():
     password = ""
     json_loader = JsonDataLoader()
     database = MySqlConnection(host, user, password)
-    mysql_processor = MySqlProcessor(database, json_loader)
+    mysql_processor = MySqlProcessor(database, json_loader, "myDB")
     mysql_processor.run()
 
 
