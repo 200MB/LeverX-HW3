@@ -1,2 +1,3 @@
 mysql-connector-python
+python-dotenv
 dataclasses; python_version < "3.7"
