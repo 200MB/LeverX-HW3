@@ -118,15 +118,16 @@ class DataLoader(ABC):
 
 
 class JsonDataLoader(DataLoader):
+    @staticmethod
+    def _load_json(path):
+        with open(path) as f:
+            return json.load(f)
+
     def load(
             self, students_path: str, rooms_path: str
     ) -> tuple[list[Student], list[Room]]:
-        def load_json(path):
-            with open(path) as f:
-                return json.load(f)
-
-        students_json = load_json(students_path)
-        rooms_json = load_json(rooms_path)
+        students_json = self._load_json(students_path)
+        rooms_json = self._load_json(rooms_path)
 
         students = [Student(s["id"],
                             s["name"],
@@ -139,41 +140,42 @@ class JsonDataLoader(DataLoader):
 
 
 class XmlDataLoader(DataLoader):
+    @staticmethod
+    def _parse_students(xml_path):
+        try:
+            tree = ET.parse(xml_path)
+            students = []
+            for student_el in tree.getroot():
+                student = Student(
+                    id=int(student_el.find("id").text),
+                    name=student_el.find("name").text,
+                    room_id=int(student_el.find("room").text),
+                )
+                students.append(student)
+            return students
+        except ET.ParseError:
+            raise ValueError(f"Error parsing XML file: {xml_path}")
+
+    @staticmethod
+    def _parse_rooms(xml_path):
+        try:
+            tree = ET.parse(xml_path)
+            rooms = []
+            for room_el in tree.getroot():
+                room = Room(
+                    id=int(room_el.find("id").text), name=room_el.find("name").text
+                )
+                rooms.append(room)
+            return rooms
+        except ET.ParseError:
+            raise ValueError(f"Error parsing XML file: {xml_path}")
+
     def load(
             self, students_path: str, rooms_path: str
     ) -> tuple[list[Student], list[Room]]:
-        def parse_students(xml_path):
-            try:
-                tree = ET.parse(xml_path)
-                students = []
-                for student_el in tree.getroot():
-                    student = Student(
-                        id=int(student_el.find("id").text),
-                        name=student_el.find("name").text,
-                        room_id=int(student_el.find("room").text),
-                        birthday=student_el.find("birthday").text,
-                        sex=student_el.find("sex").text,
-                    )
-                    students.append(student)
-                return students
-            except ET.ParseError:
-                raise ValueError(f"Error parsing XML file: {xml_path}")
 
-        def parse_rooms(xml_path):
-            try:
-                tree = ET.parse(xml_path)
-                rooms = []
-                for room_el in tree.getroot():
-                    room = Room(
-                        id=int(room_el.find("id").text), name=room_el.find("name").text
-                    )
-                    rooms.append(room)
-                return rooms
-            except ET.ParseError:
-                raise ValueError(f"Error parsing XML file: {xml_path}")
-
-        students = parse_students(students_path)
-        rooms = parse_rooms(rooms_path)
+        students = self._parse_students(students_path)
+        rooms = self._parse_rooms(rooms_path)
         return students, rooms
 
 
