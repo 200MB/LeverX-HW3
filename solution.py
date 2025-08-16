@@ -1,11 +1,24 @@
 import os
 from datetime import datetime
+import logging
 from dotenv import load_dotenv
 import mysql.connector
 from dataclasses import dataclass
 import xml.etree.ElementTree as ET
 import json
 from abc import ABC, abstractmethod
+
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.FileHandler("app.log"),
+        logging.StreamHandler()
+    ]
+)
+
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -218,11 +231,11 @@ class MySqlProcessor(DatabaseProcessor):
 
     def _create_indexes(self):
         self.database.execute("CREATE INDEX idx_students_room_id ON students (room_id)")
-        print("Index 'idx_students_room_id' created.")
+        logger.info("Index 'idx_students_room_id' created.")
         self.database.execute("CREATE INDEX idx_students_birthday ON students (birthday)")
-        print("Index 'idx_students_birthday' created.")
+        logger.info("Index 'idx_students_birthday' created.")
         self.database.execute("CREATE INDEX idx_students_room_sex ON students (room_id, sex)")
-        print("Index 'idx_students_room_sex' created.")
+        logger.info("Index 'idx_students_room_sex' created.")
 
     def initialize_db(self):
         self._create_database()
@@ -244,7 +257,7 @@ class MySqlProcessor(DatabaseProcessor):
         self.database.executemany(insert_student_data, students_data)
 
     def clear_tables(self):
-        print("Clearing tables")
+        logger.info("Clearing tables")
         self.database.execute("DELETE FROM students")
         self.database.execute("DELETE FROM rooms")
 
@@ -321,16 +334,16 @@ class MySqlProcessor(DatabaseProcessor):
                 self.clear_tables()
 
                 students, rooms = self.loader.load("students.json", "rooms.json")
-                print(f"Loaded {len(students)} students and {len(rooms)} rooms.")
+                logger.info(f"Loaded {len(students)} students and {len(rooms)} rooms.")
 
                 self.insert_data(students, rooms)
-                print("Inserted data into database.")
+                logger.info("Inserted data into database.")
 
-                print("Running all filter commands")
+                logger.info("Running all filter commands")
                 self.retrieve_filtered_data()
 
         except Exception as e:
-            print(f"An unexpected error occurred during application run: {e}")
+            logger.exception("An unexpected error occurred during application run.")
 
 
 def main():
