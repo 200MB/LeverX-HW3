@@ -244,57 +244,69 @@ class MySqlProcessor(DatabaseProcessor):
         self.database.execute("DELETE FROM students")
         self.database.execute("DELETE FROM rooms")
 
-    def retrieve_filtered_data(self):
-        query_student_counts = """SELECT r.name      AS room_name,
-                                COUNT(s.id) AS student_count
-                         FROM rooms AS r
-                                  JOIN students AS s
-                                       ON r.id = s.room_id
-                         GROUP BY r.name
-                         ORDER BY student_count DESC; \
-                      """
-        self.database.execute(query_student_counts)
+    def _print_student_counts(self):
+        query = """SELECT r.name      AS room_name,
+                         COUNT(s.id) AS student_count
+                  FROM rooms AS r
+                           JOIN students AS s
+                                ON r.id = s.room_id
+                  GROUP BY r.name
+                  ORDER BY student_count DESC;"""
+        self.database.execute(query)
         results = self.database.fetchall()
+        print("Rooms by student count (descending):")
         for room_name, student_count in results:
             print(f"  - Room '{room_name}': {student_count} students")
-        print("-" * 50)
 
-        query_smallest_avg_age = """SELECT r.name                                          AS room_name,
-                                 AVG(TIMESTAMPDIFF(YEAR, s.birthday, CURDATE())) AS average_age
-                          FROM rooms AS r
-                                   JOIN students AS s
-                                        ON r.id = s.room_id
-                          GROUP BY r.name
-                          ORDER BY average_age ASC LIMIT 5;"""
-        self.database.execute(query_smallest_avg_age)
+    def _print_smallest_avg_age(self):
+        query = """SELECT r.name                                          AS room_name,
+                          AVG(TIMESTAMPDIFF(YEAR, s.birthday, CURDATE())) AS average_age
+                   FROM rooms AS r
+                            JOIN students AS s
+                                 ON r.id = s.room_id
+                   GROUP BY r.name
+                   ORDER BY average_age ASC LIMIT 5;"""
+        self.database.execute(query)
         results = self.database.fetchall()
+        print("Top 5 rooms with the smallest average age:")
         for room_name, average_age in results:
             print(f"  - Room '{room_name}': Average age {average_age:.2f} years")
-        print("-" * 50)
 
-        query_largest_age_diff = """SELECT r.name                                                AS room_name,
-                                TIMESTAMPDIFF(YEAR, MIN(s.birthday), MAX(s.birthday)) AS age_difference
-                         FROM rooms AS r
-                                  JOIN students AS s
-                                       ON r.id = s.room_id
-                         GROUP BY r.name
-                         ORDER BY age_difference DESC LIMIT 5;"""
-        self.database.execute(query_largest_age_diff)
+    def _print_largest_age_diff(self):
+        query = """SELECT r.name                                                AS room_name,
+                          TIMESTAMPDIFF(YEAR, MIN(s.birthday), MAX(s.birthday)) AS age_difference
+                   FROM rooms AS r
+                            JOIN students AS s
+                                 ON r.id = s.room_id
+                   GROUP BY r.name
+                   ORDER BY age_difference DESC LIMIT 5;"""
+        self.database.execute(query)
         results = self.database.fetchall()
+        print("Top 5 rooms with the largest age difference:")
         for room_name, age_difference in results:
             print(f"  - Room '{room_name}': Age difference of {age_difference} years")
-        print("-" * 50)
 
-        query_mixed_sex_rooms = """SELECT r.name AS room_name
-                          FROM rooms AS r
-                                   JOIN students AS s
-                                        ON r.id = s.room_id
-                          GROUP BY r.name
-                          HAVING COUNT(DISTINCT s.sex) > 1;"""
-        self.database.execute(query_mixed_sex_rooms)
+    def _print_mixed_sex_rooms(self):
+        query = """SELECT r.name AS room_name
+                   FROM rooms AS r
+                            JOIN students AS s
+                                 ON r.id = s.room_id
+                   GROUP BY r.name
+                   HAVING COUNT(DISTINCT s.sex) > 1;"""
+        self.database.execute(query)
         results = self.database.fetchall()
+        print("Rooms with mixed sex students:")
         for room_name in results:
             print(f"  - Room '{room_name[0]}'")
+
+    def retrieve_filtered_data(self):
+        self._print_student_counts()
+        print("-" * 50)
+        self._print_smallest_avg_age()
+        print("-" * 50)
+        self._print_largest_age_diff()
+        print("-" * 50)
+        self._print_mixed_sex_rooms()
         print("-" * 50)
 
     def run(self):
