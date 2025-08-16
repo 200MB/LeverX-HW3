@@ -85,6 +85,13 @@ class MySqlConnection(DatabaseConnection):
             self.conn.rollback()
             raise
 
+    def __enter__(self):
+        self.connect()
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.close()
+
 
 class DataLoader(ABC):
     """
@@ -173,10 +180,6 @@ class DatabaseProcessor(ABC):
 
 
 class MySqlProcessor(DatabaseProcessor):
-    """
-    Processor runs every instruction at once with database connection and a loader.
-    """
-
     def __init__(self, database: DatabaseConnection, loader: DataLoader, db_name: str):
         self.database_name = db_name if db_name is not None else "myDb"
         self.loader = loader
@@ -233,7 +236,6 @@ class MySqlProcessor(DatabaseProcessor):
                               VALUES (%s, %s)"""
         rooms_data = [(room.id, room.name) for room in rooms]
         self.database.executemany(insert_room_data, rooms_data)
-        pass
 
         insert_student_data = """INSERT INTO students (id, name, room_id, birthday, sex)
                                  VALUES (%s, %s, %s, %s, %s)"""
@@ -314,24 +316,21 @@ class MySqlProcessor(DatabaseProcessor):
     def run(self):
         """Executes the main application logic."""
         try:
-            self.database.connect()
-            self.initialize_db()
-            self.clear_tables()
+            with self.database as db:
+                self.initialize_db()
+                self.clear_tables()
 
-            students, rooms = self.loader.load("students.json", "rooms.json")
-            print(f"Loaded {len(students)} students and {len(rooms)} rooms.")
+                students, rooms = self.loader.load("students.json", "rooms.json")
+                print(f"Loaded {len(students)} students and {len(rooms)} rooms.")
 
-            self.insert_data(students, rooms)
-            print("Inserted data into database.")
+                self.insert_data(students, rooms)
+                print("Inserted data into database.")
 
-            print("Running all filter commands")
-            self.retrieve_filtered_data()
+                print("Running all filter commands")
+                self.retrieve_filtered_data()
 
         except Exception as e:
             print(f"An unexpected error occurred during application run: {e}")
-
-        finally:
-            self.database.close()
 
 
 def main():
