@@ -1,6 +1,8 @@
+import os
 from datetime import datetime
+from dotenv import load_dotenv
 import mysql.connector
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 import xml.etree.ElementTree as ET
 import json
 from abc import ABC, abstractmethod
@@ -336,13 +338,15 @@ def main():
     """
     Instantiate a processor and run the instructions.
     """
+    load_dotenv()
+    host = os.getenv("DB_HOST")
+    user = os.getenv("DB_USER")
+    password = os.getenv("DB_PASSWORD")
+    db_name = os.getenv("DB_NAME")
 
-    host = ""
-    user = ""
-    password = ""
     json_loader = JsonDataLoader()
     database = MySqlConnection(host, user, password)
-    mysql_processor = MySqlProcessor(database, json_loader, "myDB")
+    mysql_processor = MySqlProcessor(database, json_loader, db_name)
     mysql_processor.run()
 
 
